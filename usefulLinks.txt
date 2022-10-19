@@ -19,3 +19,6 @@ https://pythonds.linogaliana.fr/geopandas/
 https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=Sirene&version=V3&provider=insee
 
 
+#OSMwiki
+- tags (map features) for nodes on the map: https://wiki.openstreetmap.org/wiki/Map_features
+- projection of geographic coordinates: https://wiki.openstreetmap.org/wiki/Projection
