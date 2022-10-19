@@ -1,28 +1,52 @@
 import osmium
+import argparse
 from OSMHandler import *
 
-tlhandler2 = TimelineHandler()
-tlhandler2.apply_file("/home/sarah/projects/osm/restaurant_names/ENSAE/datasets_Oct2022/ile-de-france-internal.osh.pbf")
-
-#tlhandler2.write2File("../data/ile-de-france_restaurants_history_oct2022.csv")
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-h2 = RestauHandler()
-h2.apply_file("/home/sarah/projects/osm/restaurant_names/ENSAE/datasets_Oct2022/ile-de-france-latest.osm.pbf")
-#outfile = "../data/restaurant_idtable_idf_parsetest.tsv"
-#h2.write2File(outfile)
+
+parser = argparse.ArgumentParser(description="Extract information for tag=restaurant from osm files for current map and history file")
+parser.add_argument("-i", "--history", help = "history input file (.osh.pbf)", required=True)
+parser.add_argument("-m", "--map", help = "current map input file (.osm.pbf)", required=True)
+parser.add_argument("-o", "--outfile", help = "output will be written in this file, default=[mapfile]_out.csv")
+
+args = parser.parse_args()
+
+mapfile = args.map
+
+histfile = args.history
+
+outputfile = ""
+if args.outfile:
+    outputfile = args.outfile
+else:
+    outputfile = mapfile+"_out.csv"
+
+
+
+
+
+#create osmium handlers to parse input files
+
+tlhandler = TimelineHandler()
+tlhandler.apply_file(histfile)
+
+rhandler = RestauHandler()
+rhandler.apply_file(mapfile)
+
 
 
 #get elements from both handlers and create the history file
 #assumption: elements that do not occur in the restauHandler do not exists anymore, so their end date is the last timestamp in the history file ( which might be a wrong assumption!)
 #elements that still exist get the current year as end year
 
-elements_hist = tlhandler2.getElements()
-elements_cur = h2.getElements()
+elements_hist = tlhandler.getElements()
+elements_cur = rhandler.getElements()
 
-outfilename = "../data/ile-de-france_restaurants_history_oct2022.csv"
 
-CURYEAR = 2022
+CURYEAR = 2022 #this is the current year to know which endyear to put in the output file
 
 nversion = []
 startyear = []
@@ -121,4 +145,4 @@ for sk in single2tab.keys():
 
 #create data frame
 data = pd.DataFrame(list(zip(ids, restonames, lats, lons, nversion, startyear, endyear, altnames, users, tags)), columns =["NodeID","Name","Lat","Lon","Versions","Startyear","Endyear","NameAlternatives","Users","Tags"])
-data.to_csv(outfilename, sep="\t")
+data.to_csv(outputfile, sep="\t")
