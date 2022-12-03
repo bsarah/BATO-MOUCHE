@@ -1,5 +1,3 @@
-#!pip install contextily
-#!pip install osmnx
 import geopandas as gpd
 import contextily as ctx
 import matplotlib.pyplot as plt
