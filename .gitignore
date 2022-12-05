@@ -50,4 +50,4 @@ cache/
 
 .vscode/settings.json
 
-.pyc
+*.pyc
