@@ -108,16 +108,12 @@ def count_amenities2(place) :
     amenities = np.array([amenities, np.zeros(len(amenities))])
 
     for i in column_amenity :
-        #print("amenity =", i)
         if i in list_restaurants :
             amenities[1][0] += 1
-            #print("restaurants = ", amenities[1][0])
         if i in list_culture :
             amenities[1][1] += 1
-            #print("art et culture = ", amenities[1][0])
         if i in list_education :
             amenities[1][2] += 1
-            #print("education = ", amenities[1][0])
 
     amenities[1][-1] = np.sum(amenities[1][0 : len(amenities[0]) - 1])
     
