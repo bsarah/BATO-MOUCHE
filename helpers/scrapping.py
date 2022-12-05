@@ -43,6 +43,7 @@ def get_place_POI_tags(place : str,
     city : str, format : "Name, Region, Country" (Example : Paris, Ile-de-France, France)
     tags : dict, keys and values are the same as in OMS. 
     For instance : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    and : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#Consommation
     consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
     Returns the street network in a 1km walking distance as a networkx object 
     and the POI in the same area as a geodataframe
@@ -58,12 +59,6 @@ def get_place_POI_tags(place : str,
     if consolidate:
         g_proj = ox.project_graph(g_place)
         g_place = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)
-
-    #get the POI
-    tags = {"amenity":["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]}
-    # Voir : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques 
-    # ce qui nous interresse est probablement le plus : 
-    # https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#Consommation
     
     gdf_pois = ox.geometries_from_place(place, tags, buffer_dist=1000)
     #certains lieux (comme une ville) ont un polygone associée : 
@@ -98,6 +93,7 @@ def get_place_POI_category(place: str,
     for cat in categories:
         tags += categories_tags[cat]
     tags = {'amenity':tags}
+    print(tags)
     return get_place_POI_tags(place = place, tags = tags, city=city, consolidate=consolidate, network_type=network_type)
 
 def plot_POI_folium(place_latlong : np.array,
