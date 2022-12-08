@@ -208,3 +208,34 @@ def get_type_cuisine(amenities : gpd.GeoDataFrame, unique= True):
 
     unique_type = {"type_cuisine":unique_type.keys(), "nb_cuisine":unique_type.values()}
     return pd.DataFrame(unique_type)
+
+def counting_unique_subvalues(df : pd.DataFrame, var, relative= False):
+    """
+        Counting values of a categorical var in a dataframe where thoses values can have multiple subvalues.
+        returns a dictionnary with for every entry the number of values counted
+        the code is probably suboptimal
+    """
+    counts = df[var].value_counts()
+    # for now we only separate list variables, could be extended to str with a split(separator)
+    list_counts = counts.tolist()
+    unique_values = [] #unique values are str
+    multiple_values = [] #multiple are list
+    for i,k in enumerate(counts.keys()):
+        if type(k)==str:
+            unique_values.append((i,k))
+        elif type(k)==list:
+            multiple_values.append((i,k))
+    counts = {k:list_counts[i] for (i,k) in unique_values}
+    #we transform it in dataframe because of unhashable type and we keep only the unique values, and we transform it into a dictionnary because
+    for i,k in multiple_values:
+        for subk in k:
+            if subk in counts.keys():
+                counts[subk] += list_counts[i]
+            else :
+                unique_values.append((i,subk))
+                counts[subk] = list_counts[i]
+    if relative:
+        total = sum(counts.values())
+        for (i,k) in counts.keys():
+            counts[k]= counts[k]/total
+    return counts
