@@ -10,7 +10,7 @@ import osmnx as ox
 import networkx as nx
 import numpy as np
 from tqdm.auto import tqdm 
-
+from palettable.colorbrewer.qualitative import Pastel1_7
 
 
 ##########################################
