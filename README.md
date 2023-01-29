@@ -87,6 +87,8 @@ Knap, Elizabeth, Mehmet Baran Ulak, Karst T. Geurs, Alex Mulders, et Sander van 
 
 Girres, Jean-François, et Guillaume Touya. « Quality Assessment of the French OpenStreetMap Dataset ». Transactions in GIS 14, no 4 (2010): 435‑59. [https://doi.org/10.1111/j.1467-9671.2010.01203.x](https://doi.org/10.1111/j.1467-9671.2010.01203.x).
 
+PySAL: A Python Library of Spatial Analytical Methods, Rey, S.J. and L. Anselin, Review of Regional Studies 37, 5-27 2007.
+
 # Python packages and tools
 
 ## Geographic package
