@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import folium
 import pandas as pd
 import urllib3
-from zipfile import ZipFile
 import requests
 import osmnx as ox
 import networkx as nx
@@ -95,6 +94,62 @@ def get_place_POI_category(place: str,
     tags = {'amenity':tags}
     print(tags)
     return get_place_POI_tags(place = place, tags = tags, city=city, consolidate=consolidate, network_type=network_type)
+
+def get_polygon_POI_tags(
+    polygon,
+    tags = {"amenity":["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]},
+    consolidate = True,
+    network_type = 'walk') : 
+    """
+    Function to get OMS POI within a polygon.
+    polygon : shapely.geometry.MultiPolygon or shapely.geometry.Polygon
+    tags : dict, keys and values are the same as in OMS. 
+    For instance : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    and : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#Consommation
+    consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
+    Returns the POI in the polygon as a geodataframe
+    POI are projected to WGS-84
+    """
+    """# récupération des données piétons
+    #get the network
+    g_poly = ox.graph_from_polygon(polygon, network_type=network_type, retain_all=True, truncate_by_edge=True)
+    g_poly = ox.project_graph(g_poly, to_crs="WGS-84")
+    if consolidate:
+        g_proj = ox.project_graph(g_poly)
+        g_poly = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)"""
+    
+    gdf_pois = ox.geometries.geometries_from_polygon(polygon, tags)
+    #certains lieux (comme une ville) ont un polygone associée : 
+    # on peut donc récupérer les POI sans indiquer de dist
+    if len(gdf_pois) > 0:
+        gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
+        #gdf_pois["center"]=gdf_pois.centroid
+    #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
+    return gdf_pois #return g_poly, gdf_pois    #On récupère directement un networkx et un geodataframe
+
+def get_polygon_POI_category(polygon, 
+    categories : list,
+    consolidate = True,
+    network_type = 'walk') :
+    """
+    Function to get OMS POI within a polygon.
+    polygon : shapely.geometry.MultiPolygon or shapely.geometry.Polygon
+    categories : homemade categories on amenities tags. list of str between the following :
+    Available categories : 'restaurant', 'culture and art', 'education' 
+    list_restaurants = ["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]
+    list_culture = ["library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase", "studio", "theatre"]
+    list_education = ["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"]
+    See : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
+    Returns the POI in the polygon as a geodataframe
+    POI are projected to WGS-84"""
+    
+    tags = []
+    for cat in categories:
+        tags += categories_tags[cat]
+    tags = {'amenity':tags}
+    return get_polygon_POI_tags(polygon = polygon, tags = tags, consolidate=consolidate, network_type=network_type)
+
 
 def plot_POI_folium(place_latlong : np.array,
     gdf_poi: gpd.GeoDataFrame, tiles = "OpenStreetMap", zoom_start = 14) :
@@ -239,3 +294,20 @@ def counting_unique_subvalues(df : pd.DataFrame, var, relative= False):
         for (i,k) in counts.keys():
             counts[k]= counts[k]/total
     return counts
+
+def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_tags.keys()):
+    """
+    count for each polygons in the polygons list how many POI correspond to each category
+    take as arguments a geodataframe with polygon as index, a list of categories_tags's keys"""
+    number_poi_by_cat = {}
+    for cat in categories:
+        number_poi_by_cat[cat] = []
+        for poly, row in tqdm(gdf.iterrows()):
+            n = len(get_polygon_POI_category(polygon= poly, categories=[cat]))
+            number_poi_by_cat[cat].append(n)
+    for cat in categories:
+        gdf[cat] = number_poi_by_cat[cat] 
+    return gdf
+
+
+
