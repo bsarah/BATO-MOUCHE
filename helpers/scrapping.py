@@ -200,13 +200,24 @@ def route_between_coordinates(streets : nx.classes.MultiDiGraph,
 
     return route
 
-def distance_route(route, streets : nx.classes.MultiDiGraph):
+def distance_route(route, streets : nx.classes.MultiDiGraph, limit=1000):
     n = len(route)-1
     dist_metric = 0
     for i in range(n):
         adj = streets.adj[route[i]]
         dist_metric += adj[route[i+1]][0]['length']
+        if dist_metric > limit:
+            return dist_metric
     return dist_metric
+
+def distance_between_coordinates(streets : nx.classes.MultiDiGraph,
+    coord1: tuple, coord2 : tuple, weight = "lenght", limit = 1000):
+    route = route_between_coordinates(streets,
+    coord1, coord2, weight)
+    if route == None:
+        return np.inf
+    else:
+        return distance_route(route,streets)/limit
 
 def route_between_POI(streets : nx.classes.MultiDiGraph, poi : gpd.GeoDataFrame,
     name1: str, name2 : str, weight = "lenght"):
@@ -309,5 +320,18 @@ def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_ta
         gdf[cat] = number_poi_by_cat[cat] 
     return gdf
 
-
-
+def calculate_demand():
+    """
+    Les tranches d'âge suivantes :
+    Ind_0_3 : Nombre d’individus de 0 à 3 ans
+Ind_4_5 : Nombre d’individus de 4 à 5 ans
+Ind_6_10 : Nombre d’individus de 6 à 10 ans
+Ind_11_17 : Nombre d’individus de 11 à 17 ans
+Ind_18_24 : Nombre d’individus de 18 à 24 ans
+Ind_25_39 : Nombre d’individus de 25 à 39 ans
+Ind_40_54 : Nombre d’individus de 40 à 54 ans
+Ind_55_64 : Nombre d’individus de 55 à 64 ans
+Ind_65_79 : Nombre d’individus de 65 à 79 ans
+Ind_80p : Nombre d’individus de 80 ans ou plus
+Ind_inc : Nombre d’individus dont l’âge est inconnu 
+    """
