@@ -10,6 +10,9 @@ import networkx as nx
 import numpy as np
 from tqdm.auto import tqdm 
 
+from pysal.lib import weights
+from pysal.lib import cg as geometry
+
 ##########################################
 ##### General variables ##################
 ##########################################
@@ -29,7 +32,7 @@ to interact with Overpass API (a copy of OMS data without the same API limitatio
 """
 
 ##########################################
-##### General function ########
+##### OSMNX functions specific implementation ########
 ##########################################
 
 def get_place_POI_tags(place : str,
@@ -150,6 +153,9 @@ def get_polygon_POI_category(polygon,
     tags = {'amenity':tags}
     return get_polygon_POI_tags(polygon = polygon, tags = tags, consolidate=consolidate, network_type=network_type)
 
+##########################################
+##### Map function ########
+########################################## 
 
 def plot_POI_folium(place_latlong : np.array,
     gdf_poi: gpd.GeoDataFrame, tiles = "OpenStreetMap", zoom_start = 14) :
@@ -182,6 +188,9 @@ def plot_POI_folium(place_latlong : np.array,
             )
         )
     return map
+##########################################
+##### Route functions ########
+##########################################
 
 def route_between_coordinates(streets : nx.classes.MultiDiGraph,
     coord1: tuple, coord2 : tuple, weight = "lenght"):
@@ -239,6 +248,10 @@ def get_POI_coordinates(poi: gpd.GeoDataFrame, name : str):
     coord = poi[poi['name']==name]['center'][0]
     coord = np.array(coord)
     return (coord[0], coord[1])
+
+##########################################
+##### Cuisine data exploration function ##
+##########################################
 
 def get_type_cuisine(amenities : gpd.GeoDataFrame, unique= True):
     type_restaurants = amenities['cuisine'].value_counts()
@@ -306,6 +319,10 @@ def counting_unique_subvalues(df : pd.DataFrame, var, relative= False):
             counts[k]= counts[k]/total
     return counts
 
+##########################################
+##### Aggregation function ########
+##########################################
+
 def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_tags.keys()):
     """
     count for each polygons in the polygons list how many POI correspond to each category
@@ -320,18 +337,116 @@ def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_ta
         gdf[cat] = number_poi_by_cat[cat] 
     return gdf
 
-def calculate_demand():
+##########################################
+##### 2SFCA function ########
+##########################################
+
+def calculate_2SFCA_demand(gdf,weights_by_id,
+    weight_age = {
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }
+):
     """
+    gdf and weights_by_id must use the same id.
+    """
+    f = lambda row: calcule_individual_demand(row = row, weight_age= weight_age)
+    demand = gdf.apply(f, axis = 'columns',raw = False)
+    weighted_demand = weights_by_id.multiply(other = demand,axis=0) 
+    # we have for each column i the series of individual demande j * weight ij
+    return weighted_demand.sum() # donne pour chaque carré sa zone de patientèle cad le nombre de personnes
+    # qui veulent recevoir le service, sommé par les poids décroissants avec la distance
+
+
+def calcule_individual_demand(row,
+    weight_age = {
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }):
+    demand = 0
+    for k in weight_age.keys():
+        demand += row[k]*weight_age[k]
+    return demand
+
+def calculate_2SFCA_accessibility_var(supply,demand,weights_by_id):
+    ratio = supply/demand
+    weighted_ratio = weights_by_id.multiply(other = ratio,axis=0) 
+    return weighted_ratio.sum()
+
+def calculate_distanceband_weights(gdf, idCol = "IdINSPIRE",geometryCol="geometry",threshold = 1):
+    # donner directement par la fonction de pysal
+    # for each i in ids, we attribute the list (dataframe with  id in index) of the weight of j from i
+    radius = geometry.sphere.RADIUS_EARTH_KM
+    gdf.reset_index(inplace=True)
+    w_db = weights.distance.DistanceBand.from_dataframe(gdf,threshold=threshold,binary = False,radius = radius,geom_col = geometryCol, ids = idCol)
+    # poids calculé en faisant la fonction inverse de la distance euclidienne entre les polygons (entre leurs centroids ?)
+    # thresold de 1km <=> 15mn de marche à 4km/h
+    full_matrix,ids = w_db.full()
+
+    weights_by_id = pd.DataFrame(index = ids)
+    for i,id in enumerate(ids):
+        weights_by_id = weights_by_id.join(pd.Series(index = ids,data=full_matrix[i],name=id))
+    gdf.set_index(idCol,inplace= True)
+    return weights_by_id
+
+def calculate_2SFCA_accessibility(gdf, interestsVar, weights_by_id,weight_age={
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }
+):
+    """
+    gdf : gpd.GeoDataFrame
+    interestsVar : list of gdf's var we want to calculate the accessibility. Needs to be summable.
     Les tranches d'âge suivantes :
     Ind_0_3 : Nombre d’individus de 0 à 3 ans
-Ind_4_5 : Nombre d’individus de 4 à 5 ans
-Ind_6_10 : Nombre d’individus de 6 à 10 ans
-Ind_11_17 : Nombre d’individus de 11 à 17 ans
-Ind_18_24 : Nombre d’individus de 18 à 24 ans
-Ind_25_39 : Nombre d’individus de 25 à 39 ans
-Ind_40_54 : Nombre d’individus de 40 à 54 ans
-Ind_55_64 : Nombre d’individus de 55 à 64 ans
-Ind_65_79 : Nombre d’individus de 65 à 79 ans
-Ind_80p : Nombre d’individus de 80 ans ou plus
-Ind_inc : Nombre d’individus dont l’âge est inconnu 
+    Ind_4_5 : Nombre d’individus de 4 à 5 ans
+    Ind_6_10 : Nombre d’individus de 6 à 10 ans
+    Ind_11_17 : Nombre d’individus de 11 à 17 ans
+    Ind_18_24 : Nombre d’individus de 18 à 24 ans
+    Ind_25_39 : Nombre d’individus de 25 à 39 ans
+    Ind_40_54 : Nombre d’individus de 40 à 54 ans
+    Ind_55_64 : Nombre d’individus de 55 à 64 ans
+    Ind_65_79 : Nombre d’individus de 65 à 79 ans
+    Ind_80p : Nombre d’individus de 80 ans ou plus
+    Ind_inc : Nombre d’individus dont l’âge est inconnu 
+    weight = decaying distance function matrix
+    represented as a dataframe : col name = IdINSPIRE of the corresponding square, give a pd.Series of the weight.
+    weight_age = dict with previous keys as entries, weights_by_id for each age as values
+    weight_age can be for instance how relatively old people consumate health services compare to younger ones. 
+    for now weight_age is unique. In the future we will implement the possibility to add one series of weights 
+    for each variable.
     """
+    demand = calculate_2SFCA_demand(gdf=gdf,weights_by_id=weights_by_id, weight_age=weight_age)
+    # we use a unique demand function for now
+    # but we can create a dict var:weight_age to take consideration that different age doesnt consume
+    # the same type of services. And from that dict we create var:demand and we use that dict in
+    # the following lambda function
+    f = lambda s: calculate_2SFCA_accessibility_var(supply=s,demand=demand,weights_by_id=weights_by_id)
+    return gdf[interestsVar].apply(f,axis = 0)
