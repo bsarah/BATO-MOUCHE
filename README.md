@@ -91,13 +91,15 @@ PySAL: A Python Library of Spatial Analytical Methods, Rey, S.J. and L. Anselin,
 
 # Python packages and tools
 
-## Geographic package
+## Geographic/spatial packages
 
 ### [Geopandas](https://geopandas.org/en/stable/) obviously
 
 ### [PySal](https://pysal.org/) and in particular [PySal.lib](https://pysal.org/libpysal/)
 
 An excellent tool with a lot of different spatial statistics functions implemented !
+
+### [NetworkX](https://networkx.org/)
 
 ### Cartiflette: for working with french geographic data sets
 
