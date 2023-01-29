@@ -4,12 +4,14 @@ import matplotlib.pyplot as plt
 import folium
 import pandas as pd
 import urllib3
-from zipfile import ZipFile
 import requests
 import osmnx as ox
 import networkx as nx
 import numpy as np
 from tqdm.auto import tqdm 
+
+from pysal.lib import weights
+from pysal.lib import cg as geometry
 
 ##########################################
 ##### General variables ##################
@@ -30,7 +32,7 @@ to interact with Overpass API (a copy of OMS data without the same API limitatio
 """
 
 ##########################################
-##### General function ########
+##### OSMNX functions specific implementation ########
 ##########################################
 
 def get_place_POI_tags(place : str,
@@ -96,6 +98,65 @@ def get_place_POI_category(place: str,
     print(tags)
     return get_place_POI_tags(place = place, tags = tags, city=city, consolidate=consolidate, network_type=network_type)
 
+def get_polygon_POI_tags(
+    polygon,
+    tags = {"amenity":["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]},
+    consolidate = True,
+    network_type = 'walk') : 
+    """
+    Function to get OMS POI within a polygon.
+    polygon : shapely.geometry.MultiPolygon or shapely.geometry.Polygon
+    tags : dict, keys and values are the same as in OMS. 
+    For instance : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    and : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#Consommation
+    consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
+    Returns the POI in the polygon as a geodataframe
+    POI are projected to WGS-84
+    """
+    """# récupération des données piétons
+    #get the network
+    g_poly = ox.graph_from_polygon(polygon, network_type=network_type, retain_all=True, truncate_by_edge=True)
+    g_poly = ox.project_graph(g_poly, to_crs="WGS-84")
+    if consolidate:
+        g_proj = ox.project_graph(g_poly)
+        g_poly = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)"""
+    
+    gdf_pois = ox.geometries.geometries_from_polygon(polygon, tags)
+    #certains lieux (comme une ville) ont un polygone associée : 
+    # on peut donc récupérer les POI sans indiquer de dist
+    if len(gdf_pois) > 0:
+        gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
+        #gdf_pois["center"]=gdf_pois.centroid
+    #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
+    return gdf_pois #return g_poly, gdf_pois    #On récupère directement un networkx et un geodataframe
+
+def get_polygon_POI_category(polygon, 
+    categories : list,
+    consolidate = True,
+    network_type = 'walk') :
+    """
+    Function to get OMS POI within a polygon.
+    polygon : shapely.geometry.MultiPolygon or shapely.geometry.Polygon
+    categories : homemade categories on amenities tags. list of str between the following :
+    Available categories : 'restaurant', 'culture and art', 'education' 
+    list_restaurants = ["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]
+    list_culture = ["library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase", "studio", "theatre"]
+    list_education = ["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"]
+    See : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
+    Returns the POI in the polygon as a geodataframe
+    POI are projected to WGS-84"""
+    
+    tags = []
+    for cat in categories:
+        tags += categories_tags[cat]
+    tags = {'amenity':tags}
+    return get_polygon_POI_tags(polygon = polygon, tags = tags, consolidate=consolidate, network_type=network_type)
+
+##########################################
+##### Map function ########
+########################################## 
+
 def plot_POI_folium(place_latlong : np.array,
     gdf_poi: gpd.GeoDataFrame, tiles = "OpenStreetMap", zoom_start = 14) :
     """
@@ -127,6 +188,9 @@ def plot_POI_folium(place_latlong : np.array,
             )
         )
     return map
+##########################################
+##### Route functions ########
+##########################################
 
 def route_between_coordinates(streets : nx.classes.MultiDiGraph,
     coord1: tuple, coord2 : tuple, weight = "lenght"):
@@ -145,13 +209,24 @@ def route_between_coordinates(streets : nx.classes.MultiDiGraph,
 
     return route
 
-def distance_route(route, streets : nx.classes.MultiDiGraph):
+def distance_route(route, streets : nx.classes.MultiDiGraph, limit=1000):
     n = len(route)-1
     dist_metric = 0
     for i in range(n):
         adj = streets.adj[route[i]]
         dist_metric += adj[route[i+1]][0]['length']
+        if dist_metric > limit:
+            return dist_metric
     return dist_metric
+
+def distance_between_coordinates(streets : nx.classes.MultiDiGraph,
+    coord1: tuple, coord2 : tuple, weight = "lenght", limit = 1000):
+    route = route_between_coordinates(streets,
+    coord1, coord2, weight)
+    if route == None:
+        return np.inf
+    else:
+        return distance_route(route,streets)/limit
 
 def route_between_POI(streets : nx.classes.MultiDiGraph, poi : gpd.GeoDataFrame,
     name1: str, name2 : str, weight = "lenght"):
@@ -173,6 +248,10 @@ def get_POI_coordinates(poi: gpd.GeoDataFrame, name : str):
     coord = poi[poi['name']==name]['center'][0]
     coord = np.array(coord)
     return (coord[0], coord[1])
+
+##########################################
+##### Cuisine data exploration function ##
+##########################################
 
 def get_type_cuisine(amenities : gpd.GeoDataFrame, unique= True):
     type_restaurants = amenities['cuisine'].value_counts()
@@ -239,3 +318,135 @@ def counting_unique_subvalues(df : pd.DataFrame, var, relative= False):
         for (i,k) in counts.keys():
             counts[k]= counts[k]/total
     return counts
+
+##########################################
+##### Aggregation function ########
+##########################################
+
+def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_tags.keys()):
+    """
+    count for each polygons in the polygons list how many POI correspond to each category
+    take as arguments a geodataframe with polygon as index, a list of categories_tags's keys"""
+    number_poi_by_cat = {}
+    for cat in categories:
+        number_poi_by_cat[cat] = []
+        for poly, row in tqdm(gdf.iterrows()):
+            n = len(get_polygon_POI_category(polygon= poly, categories=[cat]))
+            number_poi_by_cat[cat].append(n)
+    for cat in categories:
+        gdf[cat] = number_poi_by_cat[cat] 
+    return gdf
+
+##########################################
+##### 2SFCA function ########
+##########################################
+
+def calculate_2SFCA_demand(gdf,weights_by_id,
+    weight_age = {
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }
+):
+    """
+    gdf and weights_by_id must use the same id.
+    """
+    f = lambda row: calcule_individual_demand(row = row, weight_age= weight_age)
+    demand = gdf.apply(f, axis = 'columns',raw = False)
+    weighted_demand = weights_by_id.multiply(other = demand,axis=0) 
+    # we have for each column i the series of individual demande j * weight ij
+    return weighted_demand.sum() # donne pour chaque carré sa zone de patientèle cad le nombre de personnes
+    # qui veulent recevoir le service, sommé par les poids décroissants avec la distance
+
+
+def calcule_individual_demand(row,
+    weight_age = {
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }):
+    demand = 0
+    for k in weight_age.keys():
+        demand += row[k]*weight_age[k]
+    return demand
+
+def calculate_2SFCA_accessibility_var(supply,demand,weights_by_id):
+    ratio = supply/demand
+    weighted_ratio = weights_by_id.multiply(other = ratio,axis=0) 
+    return weighted_ratio.sum()
+
+def calculate_distanceband_weights(gdf, idCol = "IdINSPIRE",geometryCol="geometry",threshold = 1):
+    # donner directement par la fonction de pysal
+    # for each i in ids, we attribute the list (dataframe with  id in index) of the weight of j from i
+    radius = geometry.sphere.RADIUS_EARTH_KM
+    gdf.reset_index(inplace=True)
+    w_db = weights.distance.DistanceBand.from_dataframe(gdf,threshold=threshold,binary = False,radius = radius,geom_col = geometryCol, ids = idCol)
+    # poids calculé en faisant la fonction inverse de la distance euclidienne entre les polygons (entre leurs centroids ?)
+    # thresold de 1km <=> 15mn de marche à 4km/h
+    full_matrix,ids = w_db.full()
+
+    weights_by_id = pd.DataFrame(index = ids)
+    for i,id in enumerate(ids):
+        weights_by_id = weights_by_id.join(pd.Series(index = ids,data=full_matrix[i],name=id))
+    gdf.set_index(idCol,inplace= True)
+    return weights_by_id
+
+def calculate_2SFCA_accessibility(gdf, interestsVar, weights_by_id,weight_age={
+        'Ind_0_3':1,
+        "Ind_4_5" : 1,
+        "Ind_6_10" : 1,
+        "Ind_11_17" : 1,
+        "Ind_18_24" : 1,
+        "Ind_25_39" : 1,
+        "Ind_40_54" : 1,
+        "Ind_55_64" : 1,
+        "Ind_65_79" : 1,
+        "Ind_80p" : 1,
+        "Ind_inc" : 1
+    }
+):
+    """
+    gdf : gpd.GeoDataFrame
+    interestsVar : list of gdf's var we want to calculate the accessibility. Needs to be summable.
+    Les tranches d'âge suivantes :
+    Ind_0_3 : Nombre d’individus de 0 à 3 ans
+    Ind_4_5 : Nombre d’individus de 4 à 5 ans
+    Ind_6_10 : Nombre d’individus de 6 à 10 ans
+    Ind_11_17 : Nombre d’individus de 11 à 17 ans
+    Ind_18_24 : Nombre d’individus de 18 à 24 ans
+    Ind_25_39 : Nombre d’individus de 25 à 39 ans
+    Ind_40_54 : Nombre d’individus de 40 à 54 ans
+    Ind_55_64 : Nombre d’individus de 55 à 64 ans
+    Ind_65_79 : Nombre d’individus de 65 à 79 ans
+    Ind_80p : Nombre d’individus de 80 ans ou plus
+    Ind_inc : Nombre d’individus dont l’âge est inconnu 
+    weight = decaying distance function matrix
+    represented as a dataframe : col name = IdINSPIRE of the corresponding square, give a pd.Series of the weight.
+    weight_age = dict with previous keys as entries, weights_by_id for each age as values
+    weight_age can be for instance how relatively old people consumate health services compare to younger ones. 
+    for now weight_age is unique. In the future we will implement the possibility to add one series of weights 
+    for each variable.
+    """
+    demand = calculate_2SFCA_demand(gdf=gdf,weights_by_id=weights_by_id, weight_age=weight_age)
+    # we use a unique demand function for now
+    # but we can create a dict var:weight_age to take consideration that different age doesnt consume
+    # the same type of services. And from that dict we create var:demand and we use that dict in
+    # the following lambda function
+    f = lambda s: calculate_2SFCA_accessibility_var(supply=s,demand=demand,weights_by_id=weights_by_id)
+    return gdf[interestsVar].apply(f,axis = 0)
