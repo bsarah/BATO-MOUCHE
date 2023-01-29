@@ -51,7 +51,7 @@ The OSM files can be dowload through different ways :
 
 # Ressources
 
-## Examples and inspirations
+## Tutorials and Inspirations
 
 [OSM parser with python](https://oslandia.com/en/2017/07/03/openstreetmap-data-analysis-how-to-parse-the-data-with-python/)
 
@@ -59,7 +59,7 @@ The OSM files can be dowload through different ways :
 
 [Course on OSMnx by G. Boeing (created OSMnx)](https://github.com/LeoMaurice/osmnx-examples)
 
-[Sergio J. Rey, Dani Arribas-Bel, Levi J. Wolf's book on Geographic Data Science with Python](https://geogra)phicdata.science/book/intro.html)
+[Sergio J. Rey, Dani Arribas-Bel, Levi J. Wolf's book on Geographic Data Science with Python](https://geographicdata.science/book/intro.html)
 
 See also :
 
@@ -83,6 +83,9 @@ Berkemer, Sarah J., et Peter F. Stadler. « Street Name Data as a Reflection of
 
 Boeing, Goeff. « OSMnx: New Methods for Acquiring, Constructing, Analyzing, and Visualizing Complex Street Networks | Elsevier Enhanced Reader ». Consulté le 12 novembre 2022. [https://doi.org/10.1016/j.compenvurbsys.2017.05.004](https://doi.org/10.1016/j.compenvurbsys.2017.05.004).
 
+Knap, Elizabeth, Mehmet Baran Ulak, Karst T. Geurs, Alex Mulders, et Sander van der Drift. « A Composite X-Minute City Cycling Accessibility Metric and Its Role in Assessing Spatial and Socioeconomic Inequalities – A Case Study in Utrecht, the Netherlands ». Journal of Urban Mobility 3 (1 décembre 2023): 100043. [https://doi.org/10.1016/j.urbmob.2022.100043](https://doi.org/10.1016/j.urbmob.2022.100043).
+
+Girres, Jean-François, et Guillaume Touya. « Quality Assessment of the French OpenStreetMap Dataset ». Transactions in GIS 14, no 4 (2010): 435‑59. [https://doi.org/10.1111/j.1467-9671.2010.01203.x](https://doi.org/10.1111/j.1467-9671.2010.01203.x).
 
 # Python packages and tools
 
