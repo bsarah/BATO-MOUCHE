@@ -7,32 +7,37 @@ Project on analysing OSM data. Supervised by Paula Tramora and Sarah J. Berkemer
 ### Progress
 
 - [ ] Datascrapping
-  - [ ] Approfondir à partir de wiki la compréhension des tags
-  - [X] ~~Use the simplify fct of OSMnx~~
-  - [ ] Filter user personnal data
+  - [ ] Choice of OSM tags and creation of variables of interests
+  - [ ] Creation of "ethnic food" variables ?
+  - [ ] Choice of INSEE's variables
 - [ ] First analysis
-  - [ ] Faire attention que les calculs sont des projections de GPS
-    - Quelles types d'analyse sont effectuables :
-      - textuelle sur le nom des POI et des rues ?
-      - auto corrélation spatiale ? sur quelle catégorie ?
-      - faut t il faire des analyses sur les groupes de restaurants ?
-    - Importer d'autres types de données ? :velib, transports en commun, traffic ? opendata de la RATP ?
+  - [X] Restaurants accessibility, Gini inequality
+  - [ ] see this [blog](https://geographicdata.science/book/notebooks/09_spatial_inequality.html) for more ideas
+# Data
 
-## Data scrapping
+## INSEE socio-economic data : 
+- [Filosofi](https://www.insee.fr/fr/statistiques/4176290?sommaire=4176305#consulter)
+- [SIRENE API](https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=Sirene&version=V3&provider=insee) to get data for registered company in France and their locations
+
+## OpenStreetMap scrapping
 
 There are multiple ways to get OSM data :
 
 - use the OSMnx library : really complete and easy to use
-  - Maybe too many ? Compare to geofabrik ?
-  - See the first part of near_eiffel_tower notebook
+  - near_eiffel_tower notebook explores OSMnx possibilities
+  - Uses Overpass API but simplier
+  - It is what we chosen
 
 - using Geofabrick : download and zip already .shp formats : great to use with geopandas
   - See the second part of near_eiffel_tower notebook
   - default : only a selection of towns/regions/countries : enough at least to starts with
   - advantage : files come in OSM data but also in .shp files : easier to open in geopandas
+  - See the files : 
+[Europe](https://osm-internal.download.geofabrik.de/europe.html),
+[IdF](https://download.geofabrik.de/europe/france/ile-de-france.html),
+  - [see documentation](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf)
 
 - using OSM datafiles (.osm = op-to-data, .osh = history) with osmium python library. .osm.pbf = contains every OSM elements versions through time.
-
   - see the example-code folder
   - main default : not easy extraction even with osmium
 
@@ -44,9 +49,9 @@ The OSM files can be dowload through different ways :
 - through [Geofabrik](https://www.geofabrik.de) : regular copies but only a selection of towns/regions/countries. (Geofabrik already suppress user data but the rest of the metadata are the same). Copies diponible in .osm and .shp.
 - through [Ohsome](https://hex.ohsome.org/) : for historical data analysis. Comes with an API and a python library.
 
-## Link collection for websites and data that might be useful for the project
+# Ressources
 
-### Examples and inspirations
+## Examples and inspirations
 
 [OSM parser with python](https://oslandia.com/en/2017/07/03/openstreetmap-data-analysis-how-to-parse-the-data-with-python/)
 
@@ -54,23 +59,53 @@ The OSM files can be dowload through different ways :
 
 [Course on OSMnx by G. Boeing (created OSMnx)](https://github.com/LeoMaurice/osmnx-examples)
 
-### Database
+[Sergio J. Rey, Dani Arribas-Bel, Levi J. Wolf's book on Geographic Data Science with Python](https://geogra)phicdata.science/book/intro.html)
 
-#### Geofabrik: download small chunks of osm mapping data and history files
+See also :
 
-[Europe](https://osm-internal.download.geofabrik.de/europe.html),
-[IdF](https://download.geofabrik.de/europe/france/ile-de-france.html)
-[see documentation](https://download.geofabrik.de/osm-data-in-gis-formats-free.pdf)
+- [Online version of the book “Introduction to Python for Geographic Data Analysis” by Henrikki Tenkanen, Vuokko Heikinheimo & David Whipp](https://pythongis.org/)
 
-#### [SIRENE API](https://api.insee.fr/catalogue/site/themes/wso2/subthemes/insee/pages/item-info.jag?name=Sirene&version=V3&provider=insee) to get data for registered company in France and their locations
 
-### Python packages and tools
+## OSMwiki
 
-#### osmium: tool to parse osm files with python bindings pyosmium
+- [tags (map features)](https://wiki.openstreetmap.org/wiki/Map_features) for nodes on the map
+- [projection](https://wiki.openstreetmap.org/wiki/Projection) of geographic coordinates : OMS is in WGS-84 (EPSG:4326, usual GPS projection)
+
+# Bibliography
+
+## Blog
+
+Ltd, Gispo. « [Analysing urban walkability using OpenStreetMap and Python](https://gispofinland.medium.com/analysing-urban-walkability-using-openstreetmap-and-python-33815d045204) ». Medium (blog), 22 février 2022.
+
+## Scientific articles
+
+Berkemer, Sarah J., et Peter F. Stadler. « Street Name Data as a Reflection of Migration and Settlement History ». Urban Science 4, nᵒ 4 (11 décembre 2020): 74. [doi.org/10.3390/urbansci4040074](https://doi.org/10.3390/urbansci4040074).
+
+Boeing, Goeff. « OSMnx: New Methods for Acquiring, Constructing, Analyzing, and Visualizing Complex Street Networks | Elsevier Enhanced Reader ». Consulté le 12 novembre 2022. [https://doi.org/10.1016/j.compenvurbsys.2017.05.004](https://doi.org/10.1016/j.compenvurbsys.2017.05.004).
+
+
+# Python packages and tools
+
+## Geographic package
+
+### [Geopandas](https://geopandas.org/en/stable/) obviously
+
+### [PySal](https://pysal.org/) and in particular [PySal.lib](https://pysal.org/libpysal/)
+
+An excellent tool with a lot of different spatial statistics functions implemented !
+
+### Cartiflette: for working with french geographic data sets
+
+[Cartiflette, git repo](https://github.com/InseeFrLab/cartiflette)
+and examples from the [ENSAE data science class](https://pythonds.linogaliana.fr/geopandas/)
+
+## OpenStreetMap directly related to :
+
+### osmium: tool to parse osm files with python bindings pyosmium
 
 [osmium website](https://osmcode.org/osmium-tool/), [documentation](https://osmcode.org/osmium-tool/manual.html)
 
-#### OSMnx: a library that can be used to extract data easily both graph and POI data
+### OSMnx: a library that can be used to extract data easily both graph and POI data
 
 [OSMnx git repo](https://github.com/gboeing/osmnx)
 and the [Associated examples](https://github.com/LeoMaurice/osmnx-examples)
@@ -79,7 +114,7 @@ OSMnx is developped by G. Boeing from USC. It uses the Overpass API but largely 
 
 For now, OSMnx is probably the best way to access OSM data.
 
-#### Ohsome : another library by Heildelberg university for historical data
+### Ohsome : another library by Heildelberg university for historical data
 
 can be found on [on the git repo for ohsom-py](https://github.com/GIScience/ohsome-py), created by [Heidelberg Institute for Geoinformation Technology](https://heigit.org/big-spatial-data-analytics-en/)
 
@@ -87,30 +122,5 @@ Ohsome-py is a python-based encapsulation of an API named Ohsom by the HeiGIT wh
 
 The graphic access through the [OhsomeHEx website](https://hex.ohsome.org/) is really well made and usefull to see for instance where there are enough data.
 
-#### Cartiflette: for working with french geographic data sets
 
-[Cartiflette, git repo](https://github.com/InseeFrLab/cartiflette)
-and examples from the [ENSAE data science class](https://pythonds.linogaliana.fr/geopandas/)
 
-### Ressources
-
-#### OSMwiki
-
-- [tags (map features)](https://wiki.openstreetmap.org/wiki/Map_features) for nodes on the map
-- [projection](https://wiki.openstreetmap.org/wiki/Projection) of geographic coordinates : OMS is in WGS-84 (EPSG:4326, usual GPS projection)
-
-## Bibliography
-
-### Blog
-
-Ltd, Gispo. « [Analysing urban walkability using OpenStreetMap and Python](https://gispofinland.medium.com/analysing-urban-walkability-using-openstreetmap-and-python-33815d045204) ». Medium (blog), 22 février 2022.
-
-### Scientific articles
-
-#### By the supervisors
-
-Berkemer, Sarah J., et Peter F. Stadler. « Street Name Data as a Reflection of Migration and Settlement History ». Urban Science 4, nᵒ 4 (11 décembre 2020): 74. [doi.org/10.3390/urbansci4040074](https://doi.org/10.3390/urbansci4040074).
-
-#### USC/G. Boeing
-
-« OSMnx: New Methods for Acquiring, Constructing, Analyzing, and Visualizing Complex Street Networks | Elsevier Enhanced Reader ». Consulté le 12 novembre 2022. [doi.org/10.1016/j.compenvurbsys.2017.05.004](https://doi.org/10.1016/j.compenvurbsys.2017.05.004).
