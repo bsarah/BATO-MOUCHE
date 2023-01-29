@@ -2,7 +2,7 @@
 
 ## Description
 
-Project on analysing OSM data. Supervised by Paula Tramora and Sarah J. Berkemer.
+Project on analysing OSM data. Supervised by Paula Tubora and Sarah J. Berkemer.
 
 ### Progress
 
@@ -100,6 +100,8 @@ PySAL: A Python Library of Spatial Analytical Methods, Rey, S.J. and L. Anselin,
 An excellent tool with a lot of different spatial statistics functions implemented !
 
 ### [NetworkX](https://networkx.org/)
+
+### [r5py](https://r5py.readthedocs.io/en/stable/notebooks/basic-usage.html#introduction) for transport time calculations
 
 ### Cartiflette: for working with french geographic data sets
 
