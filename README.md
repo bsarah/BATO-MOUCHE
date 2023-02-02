@@ -77,6 +77,10 @@ See also :
 
 Ltd, Gispo. « [Analysing urban walkability using OpenStreetMap and Python](https://gispofinland.medium.com/analysing-urban-walkability-using-openstreetmap-and-python-33815d045204) ». Medium (blog), 22 février 2022.
 
+## INSEE
+
+[Commerces de proximité par l'INSEE](https://www.insee.fr/fr/statistiques/4986837?sommaire=4987235)
+
 ## Scientific articles
 
 Berkemer, Sarah J., et Peter F. Stadler. « Street Name Data as a Reflection of Migration and Settlement History ». Urban Science 4, nᵒ 4 (11 décembre 2020): 74. [doi.org/10.3390/urbansci4040074](https://doi.org/10.3390/urbansci4040074).
