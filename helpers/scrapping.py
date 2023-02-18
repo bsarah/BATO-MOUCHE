@@ -37,7 +37,7 @@ to interact with Overpass API (a copy of OMS data without the same API limitatio
 
 def get_place_POI_tags(place : str,
     tags = {"amenity":["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]},
-    city : str = "Paris, Ile-de-France, France", consolidate = True,
+    city : str = "Paris, Ile-de-France, France", consolidate = True,get_network = False,
     network_type = 'walk') : 
     """
     Function to get any city's (Paris' by default) neighborhood's OMS POI.
@@ -56,24 +56,29 @@ def get_place_POI_tags(place : str,
     place += ", "+city # complete addresse
 
     #get the network
-    g_place = ox.graph_from_place(place, buffer_dist=1000, network_type=network_type, retain_all=True, truncate_by_edge=True)
-    g_place = ox.project_graph(g_place, to_crs="WGS-84")
-    if consolidate:
-        g_proj = ox.project_graph(g_place)
-        g_place = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)
+    if get_network:
+        g_place = ox.graph_from_place(place, buffer_dist=1000, network_type=network_type, retain_all=True, truncate_by_edge=True)
+        g_place = ox.project_graph(g_place, to_crs="WGS-84")
+        if consolidate:
+            g_proj = ox.project_graph(g_place)
+            g_place = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)
     
     gdf_pois = ox.geometries_from_place(place, tags, buffer_dist=1000)
     #certains lieux (comme une ville) ont un polygone associée : 
     # on peut donc récupérer les POI sans indiquer de dist
     gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
-    gdf_pois["center"]=gdf_pois.centroid
+    gdf_pois = gdf_pois.to_crs("WGS-84")
+    gdf_pois["center"]=gdf_pois.to_crs("WGS-84").centroid
     #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
-    return g_place, gdf_pois    #On récupère directement un networkx et un geodataframe
+    if get_network:
+        return g_place, gdf_pois    #On récupère directement un networkx et un geodataframe
+    else:
+        return gdf_pois
 
 
 def get_place_POI_category(place: str, 
     categories : list,
-    city : str = "Paris, Ile-de-France, France", consolidate = True,
+    city : str = "Paris, Ile-de-France, France", consolidate = True,get_network = False,
     network_type = 'walk') :
     """
     Function to get any city's (Paris' by default) neighborhood's OMS POI.
@@ -96,7 +101,8 @@ def get_place_POI_category(place: str,
         tags += categories_tags[cat]
     tags = {'amenity':tags}
     print(tags)
-    return get_place_POI_tags(place = place, tags = tags, city=city, consolidate=consolidate, network_type=network_type)
+    return get_place_POI_tags(place = place, tags = tags, city=city, consolidate=consolidate,get_network=get_network,
+     network_type=network_type)
 
 def get_polygon_POI_tags(
     polygon,
