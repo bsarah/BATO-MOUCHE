@@ -108,19 +108,79 @@ def get_place_POI_tags(place : str,
         return gdf_pois
 
 def find_cat(df, 
-             categories = ["restaurant", "culture and art", "education", 'food_shops', 'health', 'fashion_beauty', 'supply_shops']) :
-    df['category'] = 'Out of interest'
-    for i in range(len(df)) :
-        for x in categories : 
-            if df['amenity'][i] in categories_tags[x] : 
-                df['category'][i] = x
-            if df['shop'][i] in categories_tags[x] : 
-                df['category'][i] = x
+             categories = ["restaurant", "culture and art",
+              "education", 'food_shops', 'health',
+               'fashion_beauty', 'supply_shops'],
+             dummy = False) :
+    if dummy:
+        for cat in categories:
+            df[cat] = 0
+        for i in range(len(df)) :
+            for cat in categories : 
+                if df['amenity'][i] in categories_tags[cat]:
+                    df[cat][i] = 1
+                if df['shop'][i] in categories_tags[cat]:
+                    df[cat][i] = 1
+    else:
+        df['category'] = 'Out of interest'
+        for i in range(len(df)) :
+            for x in categories : 
+                if df['amenity'][i] in categories_tags[x] : 
+                    df['category'][i] = x
+                if df['shop'][i] in categories_tags[x] : 
+                    df['category'][i] = x
     return df
 
 def get_place_POI(place: str, 
-    tags : list,
-    categories : list = ["restaurant", "culture and art", "education"],
+    tags : dict = {"shop": shops, "amenity" : amenities},
+    categories = ["restaurant", "culture and art",
+     "education", "food_shops",
+     'supply_shops', 'fashion_beauty'],
+    city : str = "Paris, Ile-de-France, France", get_dummy_cat = True, get_network = False,
+    consolidate = True,
+    network_type = 'walk') :
+    """
+    Function to get any city's (Paris' by default) neighborhood's OMS POI.
+    place : str, must be name sufficiently known
+    city : str, format : "Name, Region, Country" (Example : Paris, Ile-de-France, France)
+    tags : the dict of tags we select from the categories
+    categories : homemade categories on amenities tags. list of str between the following :
+    Available categories : 'restaurant', 'culture and art', 'education' 
+    list_restaurants = ["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]
+    list_culture = ["library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase", "studio", "theatre"]
+    list_education = ["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"]
+    See : https://wiki.openstreetmap.org/wiki/FR:%C3%89l%C3%A9ments_cartographiques#
+    consolidate : use the osmnx consolidate_intersections (tolerance = 15) to merge place with too complicated intersections like a roundabout 
+    Returns the street network in a 1km walking distance as a networkx object 
+    and the POI in the same area as a geodataframe
+    Streets network and POI are projected to WGS-84"""
+    
+    #récupération des données piétons
+    place += ", "+city # complete addresse
+
+    #get the network
+    if  get_network:
+        g_place = ox.graph_from_place(place, buffer_dist=1000, network_type=network_type, retain_all=True, truncate_by_edge=True)
+        g_place = ox.project_graph(g_place, to_crs="WGS-84")
+        if consolidate:
+            g_proj = ox.project_graph(g_place)
+            g_place = ox.consolidate_intersections(g_proj, rebuild_graph=True, tolerance=15, dead_ends=False)
+        
+    gdf_pois = ox.geometries_from_place(place, tags, buffer_dist=1000)
+    #certains lieux (comme une ville) ont un polygone associé : 
+    # on peut donc récupérer les POI sans indiquer de dist
+    #gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
+    gdf_pois["center"]=gdf_pois.centroid
+    #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
+    gdf_pois = find_cat(gdf_pois, categories, dummy = get_dummy_cat)
+    if get_network:
+        return g_place, gdf_pois
+    else:
+        return gdf_pois
+
+
+def get_place_POI_category(place: str, 
+    categories : list,
     city : str = "Paris, Ile-de-France, France", consolidate = True,get_network = False,
     network_type = 'walk') :
     """
@@ -503,3 +563,56 @@ def calculate_2SFCA_accessibility(gdf, interestsVar, weights_by_id,weight_age={
     # the following lambda function
     f = lambda s: calculate_2SFCA_accessibility_var(supply=s,demand=demand,weights_by_id=weights_by_id)
     return gdf[interestsVar].apply(f,axis = 0)
+
+
+    #########################
+######## Charts #########
+#########################
+
+def composition_chart(place : str, 
+                      var = 'category', 
+                      tags = {"amenity": ["restaurant","cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]}, 
+                      categories = ["restaurant", "culture and art", "education"],
+                      city = "Paris, Ile-de-France, France"): 
+    
+    pois = get_place_POI(place, tags, categories, city)[1]
+    dic = counting_unique_subvalues(pois, var, relative= False)
+    names = names = [x for x in list(dic.keys()) if dic[x] != 0]
+    size = [x for x in list(dic.values()) if x != 0]
+    #Remove values equal to 0
+
+    # add a circle at the center to transform it in a donut chart
+    my_circle=plt.Circle( (0,0), 0.7, color='white')
+
+
+    # Give color names
+    plt.pie(size, labels=names, autopct='%1.1f%%', pctdistance=0.85,
+            colors=Pastel1_7.hex_colors, wedgeprops = { 'linewidth' : 7, 'edgecolor' : 'white' })
+    p = plt.gcf()
+    p.gca().add_artist(my_circle)
+    
+    plt.title(place)
+    plt.show()
+
+
+def compare_places(places : list, 
+                   var = 'category', 
+                   tags = {"amenity": ["restaurant","cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]},
+                   categories = ["restaurant", "culture and art", "education"],
+                   city = "Paris, Ile-de-France, France") : 
+    
+    list_places = []
+    list_var = []
+    list_number = []
+    for i in tqdm(range(len(places))):
+        pois = get_place_POI(places[i], tags, categories, city)[1]
+        dic = counting_unique_subvalues(pois, var, relative= False)
+        for x in dic : 
+            list_places.append(places[i])
+            list_var.append(x)
+            list_number.append(dic[x])
+    df = pd.DataFrame({'Place' : list_places, 'Var' : list_var, 'Number' : list_number})
+    fig = px.bar(df, x="Place", y = "Number", color = "Var", width=800, height=500)
+    fig.update_layout(showlegend=False)
+    
+    return 
