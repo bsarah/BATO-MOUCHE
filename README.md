@@ -77,7 +77,9 @@ See also :
 
 Ltd, Gispo. « [Analysing urban walkability using OpenStreetMap and Python](https://gispofinland.medium.com/analysing-urban-walkability-using-openstreetmap-and-python-33815d045204) ». Medium (blog), 22 février 2022.
 
-## INSEE
+## Administrations (INSEE et APUR)
+
+[Mixité sociale et ségragation dans la Métropole du Grand Paris](https://www.apur.org/fr/nos-travaux/mixite-sociale-segregation-metropole-grand-paris-etat-lieux-tendances-sur-15-ans)
 
 [Commerces de proximité par l'INSEE](https://www.insee.fr/fr/statistiques/4986837?sommaire=4987235)
 
