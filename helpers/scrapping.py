@@ -467,6 +467,28 @@ def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_ta
         gdf[cat] = number_poi_by_cat[cat] 
     return gdf
 
+def aggregating_from_dummies_on_grid(grid, osmgdf, geometry = "geometry"):
+    categories = categories_tags.keys()
+    agg_nb_grid = {}
+    for cat in categories:
+        agg_nb_grid[cat] = []
+    for i in range(len(grid)):
+        isin = osmgdf.within(grid[geometry][i])
+        nb = osmgdf[categories][isin].sum()
+        for cat in categories:
+            agg_nb_grid[cat].append(nb[cat])
+    for cat in categories:
+        grid["nb "+cat] = agg_nb_grid[cat]
+    return grid
+
+def get_POI_cat_on_INSPIRE_grid(url :str, city : str = "Paris"):
+    pgdf = gpd.read_file(url)
+    pgdf = pgdf.to_crs("EPSG:4326")
+    osmgdf = get_place_POI(city)
+    # je comprend pas le warning  : j'ai projeté en WGS-84.
+    return aggregating_from_dummies_on_grid(pgdf,osmgdf)
+
+
 ##########################################
 ##### 2SFCA function ########
 ##########################################
