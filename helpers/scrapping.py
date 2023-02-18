@@ -13,18 +13,49 @@ from tqdm.auto import tqdm
 from pysal.lib import weights
 from pysal.lib import cg as geometry
 
+import plotly.express as px
+from palettable.colorbrewer.qualitative import Pastel1_7
+
 ##########################################
 ##### General variables ##################
 ##########################################
 
-categories_tags = {
-        'restaurant':["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"],
-        'culture and art':["library", "toy_library", "music_school","arts_centre",
-        "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase",
-        "studio", "theatre"],
-        'education':["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"]
-    }
+categories_tags = {'restaurant':["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"],
+                   'culture and art':["library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase","studio", "theatre", "art", "camera", "collector", "craft", "frame", "games", "model", "musique", "musical_instrument", "photo", "trophy", "video", "video_games", "anime", "books", "ticket", "antiques"],
+                   'education':["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"],
+                   'food_shops' : ["alcohol", "bakery", "butcher", "cheese", "beverages", "brewing_supplies", "chocolate", "coffee", "confectionery", "convenience", "deli", "dairy", "farm", "frozen_food", "greengrocer", "ice_cream", "pasta", "pastry", "seafood", "spices", "tea", "wine", "water", "supermarket"],    
+                    'fashion_beauty' : ["bag", "boutique", "clothes", "fabric", "fashion_accessories", "jewelry", "leather", "sewing", "shoes", "tailor", "watches", "wool", "beauty", "cosmetics", "erotic", "hairdresser", "hairdresser_supply", "massage", "perfumery", "tattoo"],
+                   'supply_shops' : ["department_store", "general", "kiosk", "mall", "wholesale", "charity", "second_hand", "variety_store", "chemist", "agrarian", "appliance", "bathroom_furnishing", "doityourself", "electrical", "energy", "fireplace", "florist", "garden_centre", "garden_furniture", "gas", "glaziery", "groundskeeping", "hardware", "houseware", "locksmith", "paint", "security", "trade", "antiques", "bed", "candles", "carpet", "curtain", "doors", "flooring", "furniture", "household_linen","interior_decoration", "kitchen", "lighting", "tiles", "window_blind", "computer", "electronics", "hifi", "mobile_phone", "radiotechnics", "telecommunication", "vaccum_cleaner","atv", "bicycle", "boat", "car", "car_repair", "car_parts", "caravan", "fuel", "fishing", "golf", "hunting", "jetski", "military_surplus", "motorcycle", "outdoor", "scuba_diving", "ski", "snowmobile", "sports", "swimming_pool", "trailer", "tyres", "gift", "lottery", "newsagent", "stationery", "bookmaker", "cannabis", "copyshop", "dry_cleaning", "e-cigarette", "funeral_directors", "insurance", "laundry",  "money_lender", "outpost", "party", "pawnbroker", "pest_control", "pet", "pet_grooming", "pyrotechnics", "religion", "storage_rental", "tobacco", "toys", "travel_agency", "weapons", "vacant", "health_food", "baby_goods", "hearing_aids", "herbalist", "medical_supply", "nutrition_supplements", "optician"]}
 
+
+shops = ["alcohol", "bakery", "butcher", "cheese", "beverages", "brewing_supplies", "chocolate", 
+ "coffee", "confectionery", "convenience", "deli", "dairy", "farm", "frozen_food", "greengrocer", 
+"health_food", "ice_cream", "pasta", "pastry", "seafood", "spices", "tea", "wine", "water",
+"department_store", "general", "kiosk", "mall", "supermarket", "wholesale", 
+"baby_goods", "bag", "boutique", "clothes", "fabric", "fashion_accessories", "jewelry", "leather",
+"sewing", "shoes", "tailor", "watches", "wool", "charity", "second_hand", "variety_store", 
+"beauty", "chemist", "cosmetics", "erotic", "hairdresser", "hairdresser_supply", "hearing_aids", "herbalist", 
+"massage", "medical_supply", "nutrition_supplements", "optician", "perfumery", "tattoo",
+"agrarian", "appliance", "bathroom_furnishing", "doityourself", "electrical", "energy", "fireplace", "florist", 
+"garden_centre", "garden_furniture", "gas", "glaziery", "groundskeeping", "hardware", "houseware", "locksmith", 
+"paint", "security", "trade",
+"antiques", "bed", "candles", "carpet", "curtain", "doors", "flooring", 'furniture', "household_linen", 
+"interior_decoration", "kitchen", "lighting", "tiles", "window_blind", 
+"computer", "electronics", "hifi", "mobile_phone", "radiotechnics", "telecommunication", "vaccum_cleaner", 
+"atv", "bicycle", "boat", "car", "car_repair", "car_parts", "caravan", "fuel", "fishing", "golf", "hunting", 
+"jetski", "military_surplus", "motorcycle", "outdoor", "scuba_diving", "ski", "snowmobile", "sports", 
+"swimming_pool", "trailer", "tyres", 
+"art", "camera", "collector", "craft", "frame", "games", "model", "musique", "musical_instrument", "photo", 
+"trophy", "video", "video_games",
+"anime", "books", "gift", "lottery", "newsagent", "stationery", "ticket", 
+"bookmaker", "cannabis", "copyshop", "dry_cleaning", "e-cigarette", "funeral_directors", "insurance", "laundry", 
+"money_lender", "outpost", "party", "pawnbroker", "pest_control", "pet", "pet_grooming", "pyrotechnics", "religion",
+"storage_rental", "tobacco", "toys", "travel_agency", "weapons", "vacant"]
+
+amenities = ["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten", 
+"library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", 
+"planetarium", "public_bookcase","studio", "theatre", 
+"college", "driving_school", "kindergarten", "language_school", "training", "school", "university"]
 
 """
 We are building several functions on top of OSMnx library which itself build
@@ -68,6 +99,7 @@ def get_place_POI_tags(place : str,
     # on peut donc récupérer les POI sans indiquer de dist
     gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
     gdf_pois = gdf_pois.to_crs("WGS-84")
+    gdf_pois = gdf_pois.set_crs("WGS-84")
     gdf_pois["center"]=gdf_pois.to_crs("WGS-84").centroid
     #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
     if get_network:
@@ -75,9 +107,20 @@ def get_place_POI_tags(place : str,
     else:
         return gdf_pois
 
+def find_cat(df, 
+             categories = ["restaurant", "culture and art", "education", 'food_shops', 'health', 'fashion_beauty', 'supply_shops']) :
+    df['category'] = 'Out of interest'
+    for i in range(len(df)) :
+        for x in categories : 
+            if df['amenity'][i] in categories_tags[x] : 
+                df['category'][i] = x
+            if df['shop'][i] in categories_tags[x] : 
+                df['category'][i] = x
+    return df
 
-def get_place_POI_category(place: str, 
-    categories : list,
+def get_place_POI(place: str, 
+    tags : list,
+    categories : list = ["restaurant", "culture and art", "education"],
     city : str = "Paris, Ile-de-France, France", consolidate = True,get_network = False,
     network_type = 'walk') :
     """
