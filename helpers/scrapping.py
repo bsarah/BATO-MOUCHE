@@ -113,14 +113,14 @@ def find_cat(df,
                'fashion_beauty', 'supply_shops'],
              dummy = False) :
     if dummy:
-        for cat in categories:
-            df[cat] = 0
-        for i in range(len(df)) :
-            for cat in categories : 
+        for cat in categories : 
+            list_cat_dummy = np.zeros(len(df),dtype = int)
+            for i in range(len(df)) :
                 if df['amenity'][i] in categories_tags[cat]:
-                    df[cat][i] = 1
+                    list_cat_dummy[i] = 1
                 if df['shop'][i] in categories_tags[cat]:
-                    df[cat][i] = 1
+                    list_cat_dummy[i] = 1
+            df[cat] = list_cat_dummy
     else:
         df['category'] = 'Out of interest'
         for i in range(len(df)) :
@@ -131,12 +131,27 @@ def find_cat(df,
                     df['category'][i] = x
     return df
 
+def reduce_tags(tags):
+    reduced_tags = {}
+    accepted_tags = []
+    for cat in categories_tags.keys():
+        for t in categories_tags[cat]:
+            accepted_tags.append(t)
+    for oms_cat in tags.keys():
+        tag_to_be_searched = []
+        for t in tags[oms_cat]:
+            if t in accepted_tags:
+                tag_to_be_searched.append(t)
+        reduced_tags[oms_cat] = tag_to_be_searched
+    return reduced_tags
+            
+
 def get_place_POI(place: str, 
     tags : dict = {"shop": shops, "amenity" : amenities},
-    categories = ["restaurant", "culture and art",
-     "education", "food_shops",
-     'supply_shops', 'fashion_beauty'],
-    city : str = "Paris, Ile-de-France, France", get_dummy_cat = True, get_network = False,
+    categories = categories_tags.keys(),
+    city : str = "Paris, Ile-de-France, France", 
+    get_dummy_cat = True, number_var_reduced = True,
+    get_network = False,
     consolidate = True,
     network_type = 'walk') :
     """
@@ -173,10 +188,16 @@ def get_place_POI(place: str,
     gdf_pois["center"]=gdf_pois.centroid
     #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
     gdf_pois = find_cat(gdf_pois, categories, dummy = get_dummy_cat)
+    if number_var_reduced:
+        gdf_pois = reduce_oms_var(gdf_pois)
     if get_network:
         return g_place, gdf_pois
     else:
         return gdf_pois
+
+def reduce_oms_var(gdf):
+    list_var = ['name','center','geometry'] + list(categories_tags.keys())
+    return gdf[list_var]
 
 
 def get_place_POI_category(place: str, 
