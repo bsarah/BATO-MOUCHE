@@ -1,5 +1,8 @@
 print("--- Import helpers ---")
 
+import os
+os.environ['USE_PYGEOS'] = '0'
+
 from . import scrapping
 from . import visualize
 

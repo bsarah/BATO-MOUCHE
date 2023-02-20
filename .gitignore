@@ -1,3 +1,9 @@
+## Whole Filosofi data
+
+data/Filosofi2015_carreaux_200m_metropole.gpkg
+data/Filosofi2015_carreaux_200m_reg02.gpkg
+data/Filosofi2015_carreaux_200m_reg04.gpkg
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof

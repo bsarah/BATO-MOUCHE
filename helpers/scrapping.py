@@ -478,7 +478,7 @@ def aggregating_from_dummies_on_grid(grid, osmgdf, geometry = "geometry"):
         for cat in categories:
             agg_nb_grid[cat].append(nb[cat])
     for cat in categories:
-        grid["nb "+cat] = agg_nb_grid[cat]
+        grid[cat] = agg_nb_grid[cat]
     return grid
 
 def get_POI_cat_on_INSPIRE_grid(url :str, city : str = "Paris"):
