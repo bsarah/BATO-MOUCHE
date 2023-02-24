@@ -4,6 +4,8 @@
 
 Project on analysing OSM data. Supervised by Paula Tubora and Sarah J. Berkemer.
 
+Paper submited to [CCS France](https://iutdijon.u-bourgogne.fr/ccs-france/).
+
 ### Progress
 
 - [ ] Datascrapping
