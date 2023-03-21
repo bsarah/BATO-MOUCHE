@@ -1,3 +1,9 @@
+## Whole Filosofi data
+
+data/Filosofi2015_carreaux_200m_metropole.gpkg
+data/Filosofi2015_carreaux_200m_reg02.gpkg
+data/Filosofi2015_carreaux_200m_reg04.gpkg
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
@@ -10,20 +16,12 @@
 *.fot
 *.cb
 *.cb2
-*.lb
-*.cpg
-*.dbf
-*.prj
-*.shp
-*.shx
-*.osm.pbf
-*.zip
+.*.lb
 
 ## Intermediate documents:
 *.dvi
 *.xdv
 *-converted-to.*
-
 # these rules might exclude image files for figures etc.
 # *.ps
 # *.eps
@@ -31,7 +29,6 @@
 
 ## Generated if empty string is given at "Please type another file name for output:"
 .pdf
-
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
@@ -41,13 +38,9 @@
 *-blx.bib
 *.run.xml
 
-cache/
-
-.vscode/
-
 #emacs extension
-*~
 
 .vscode/settings.json
 
 *.pyc
+
