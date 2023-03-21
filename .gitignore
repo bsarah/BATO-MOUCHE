@@ -16,20 +16,12 @@ data/Filosofi2015_carreaux_200m_reg04.gpkg
 *.fot
 *.cb
 *.cb2
-*.lb
-*.cpg
-*.dbf
-*.prj
-*.shp
-*.shx
-*.osm.pbf
-*.zip
+.*.lb
 
 ## Intermediate documents:
 *.dvi
 *.xdv
 *-converted-to.*
-
 # these rules might exclude image files for figures etc.
 # *.ps
 # *.eps
@@ -37,7 +29,6 @@ data/Filosofi2015_carreaux_200m_reg04.gpkg
 
 ## Generated if empty string is given at "Please type another file name for output:"
 .pdf
-
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
@@ -47,13 +38,9 @@ data/Filosofi2015_carreaux_200m_reg04.gpkg
 *-blx.bib
 *.run.xml
 
-cache/
-
-.vscode/
-
 #emacs extension
-*~
 
 .vscode/settings.json
 
 *.pyc
+

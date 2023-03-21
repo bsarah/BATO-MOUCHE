@@ -1,4 +1,4 @@
-# BATO-MOUCHE/Composition of big cities
+# BATO-MOUCHE
 
 ## Description
 
@@ -138,6 +138,3 @@ can be found on [on the git repo for ohsom-py](https://github.com/GIScience/ohso
 Ohsome-py is a python-based encapsulation of an API named Ohsom by the HeiGIT which allows to access their database to explore historical (meaning the evolution of volontary contribution to OSM). It is closer to the response libary. The API is really oriented tower the evolution of OSM data and so less usefull than OSMnx for graph and POI analysis.
 
 The graphic access through the [OhsomeHEx website](https://hex.ohsome.org/) is really well made and usefull to see for instance where there are enough data.
-
-
-
