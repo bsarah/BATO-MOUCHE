@@ -22,7 +22,7 @@ from palettable.colorbrewer.qualitative import Pastel1_7
 
 categories_tags = {'restaurant':["restaurant", "cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"],
                    'culture and art':["library", "toy_library", "music_school","arts_centre", "cinema", "conference_centre", "events_venue", "planetarium", "public_bookcase","studio", "theatre", "art", "camera", "collector", "craft", "frame", "games", "model", "musique", "musical_instrument", "photo", "trophy", "video", "video_games", "anime", "books", "ticket", "antiques"],
-                   'education':["college", "driving_school", "kindergarten", "language_school", "training", "school", "university"],
+                   'education':["college",  "kindergarten", "school", "university"],
                    'food_shops' : ["alcohol", "bakery", "butcher", "cheese", "beverages", "brewing_supplies", "chocolate", "coffee", "confectionery", "convenience", "deli", "dairy", "farm", "frozen_food", "greengrocer", "ice_cream", "pasta", "pastry", "seafood", "spices", "tea", "wine", "water", "supermarket"],    
                     'fashion_beauty' : ["bag", "boutique", "clothes", "fabric", "fashion_accessories", "jewelry", "leather", "sewing", "shoes", "tailor", "watches", "wool", "beauty", "cosmetics", "erotic", "hairdresser", "hairdresser_supply", "massage", "perfumery", "tattoo"],
                    'supply_shops' : ["department_store", "general", "kiosk", "mall", "wholesale", "charity", "second_hand", "variety_store", "chemist", "agrarian", "appliance", "bathroom_furnishing", "doityourself", "electrical", "energy", "fireplace", "florist", "garden_centre", "garden_furniture", "gas", "glaziery", "groundskeeping", "hardware", "houseware", "locksmith", "paint", "security", "trade", "antiques", "bed", "candles", "carpet", "curtain", "doors", "flooring", "furniture", "household_linen","interior_decoration", "kitchen", "lighting", "tiles", "window_blind", "computer", "electronics", "hifi", "mobile_phone", "radiotechnics", "telecommunication", "vaccum_cleaner","atv", "bicycle", "boat", "car", "car_repair", "car_parts", "caravan", "fuel", "fishing", "golf", "hunting", "jetski", "military_surplus", "motorcycle", "outdoor", "scuba_diving", "ski", "snowmobile", "sports", "swimming_pool", "trailer", "tyres", "gift", "lottery", "newsagent", "stationery", "bookmaker", "cannabis", "copyshop", "dry_cleaning", "e-cigarette", "funeral_directors", "insurance", "laundry",  "money_lender", "outpost", "party", "pawnbroker", "pest_control", "pet", "pet_grooming", "pyrotechnics", "religion", "storage_rental", "tobacco", "toys", "travel_agency", "weapons", "vacant", "health_food", "baby_goods", "hearing_aids", "herbalist", "medical_supply", "nutrition_supplements", "optician"]}
@@ -111,23 +111,24 @@ def find_cat(df,
              categories = ["restaurant", "culture and art",
               "education", 'food_shops', 'health',
                'fashion_beauty', 'supply_shops'],
-             dummy = False) :
+             dummy = False,
+             tags_for_cat = categories_tags) :
     if dummy:
         for cat in categories : 
             list_cat_dummy = np.zeros(len(df),dtype = int)
             for i in range(len(df)) :
-                if df['amenity'][i] in categories_tags[cat]:
+                if df['amenity'][i] in tags_for_cat[cat]:
                     list_cat_dummy[i] = 1
-                if df['shop'][i] in categories_tags[cat]:
+                if df['shop'][i] in tags_for_cat[cat]:
                     list_cat_dummy[i] = 1
             df[cat] = list_cat_dummy
     else:
         df['category'] = 'Out of interest'
         for i in range(len(df)) :
             for x in categories : 
-                if df['amenity'][i] in categories_tags[x] : 
+                if df['amenity'][i] in tags_for_cat[x] : 
                     df['category'][i] = x
-                if df['shop'][i] in categories_tags[x] : 
+                if df['shop'][i] in tags_for_cat[x] : 
                     df['category'][i] = x
     return df
 
@@ -150,7 +151,8 @@ def get_place_POI(place: str,
     tags : dict = {"shop": shops, "amenity" : amenities},
     categories = categories_tags.keys(),
     city : str = "Paris, Ile-de-France, France", 
-    get_dummy_cat = True, number_var_reduced = True,
+    get_dummy_cat = True, tags_for_cat = categories_tags,
+    number_var_reduced = True,
     get_network = False,
     consolidate = True,
     network_type = 'walk') :
@@ -187,16 +189,18 @@ def get_place_POI(place: str,
     #gdf_pois = ox.project_gdf(gdf= gdf_pois, to_crs="WGS-84")
     gdf_pois["center"]=gdf_pois.centroid
     #chaque ligne peut être soit un polygone (par exemple pour le champ de Mars), soit un point comme un restaurant : on calcul le centre pour avoir une référence unique
-    gdf_pois = find_cat(gdf_pois, categories, dummy = get_dummy_cat)
+    gdf_pois = find_cat(gdf_pois, categories, dummy = get_dummy_cat, tags_for_cat = tags_for_cat)
     if number_var_reduced:
-        gdf_pois = reduce_oms_var(gdf_pois)
+        gdf_pois = reduce_oms_var(gdf_pois, categories=categories)
     if get_network:
         return g_place, gdf_pois
     else:
         return gdf_pois
 
-def reduce_oms_var(gdf):
-    list_var = ['name','center','geometry'] + list(categories_tags.keys())
+def reduce_oms_var(gdf, categories = ["restaurant", "culture and art",
+              "education", 'food_shops', 'health',
+               'fashion_beauty', 'supply_shops']):
+    list_var = ['name','center','geometry'] + list(categories)
     return gdf[list_var]
 
 
@@ -310,7 +314,7 @@ def plot_POI_folium(place_latlong : np.array,
                 popup=
                     "Name: " + str(poi[1]['name']) + "<br>" #here to add name 
                     #+ "Leisure: " + str(poi[1]['leisure']) + "<br>" #type 
-                    + "Amenity: " + str(poi[1]['amenity']) + "<br>" #type 
+                   # + "Amenity: " + str(poi[1]['amenity']) + "<br>" #type 
                     + "Coordinates: " + str(y)+', '+str(x)
                 ,
             
@@ -467,8 +471,10 @@ def count_POI_within_polygon(gdf : gpd.GeoDataFrame,  categories = categories_ta
         gdf[cat] = number_poi_by_cat[cat] 
     return gdf
 
-def aggregating_from_dummies_on_grid(grid, osmgdf, geometry = "geometry"):
-    categories = categories_tags.keys()
+def aggregating_from_dummies_on_grid(grid, osmgdf,
+                                     geometry = "geometry",
+                                     categories = categories_tags.keys()
+):
     agg_nb_grid = {}
     for cat in categories:
         agg_nb_grid[cat] = []
@@ -479,14 +485,26 @@ def aggregating_from_dummies_on_grid(grid, osmgdf, geometry = "geometry"):
             agg_nb_grid[cat].append(nb[cat])
     for cat in categories:
         grid[cat] = agg_nb_grid[cat]
-    return grid
+    return grid 
 
-def get_POI_cat_on_INSPIRE_grid(url :str, city : str = "Paris"):
+
+def get_POI_cat_on_INSPIRE_grid(url :str, city : str = "Paris", reduced_cat = True):
     pgdf = gpd.read_file(url)
     pgdf = pgdf.to_crs("EPSG:4326")
-    osmgdf = get_place_POI(city)
-    # je comprend pas le warning  : j'ai projeté en WGS-84.
-    return aggregating_from_dummies_on_grid(pgdf,osmgdf)
+    if reduced_cat:
+        osmgdf = get_place_POI(city)
+        # je comprend pas le warning  : j'ai projeté en WGS-84.
+        return aggregating_from_dummies_on_grid(pgdf,osmgdf)
+    else:
+        categories = dict()
+        for s in shops:
+            categories[s]=[s]
+        for a in amenities:
+            categories[a]=[a]
+        
+        osmgdf = get_place_POI("Paris", categories=categories.keys(), tags_for_cat = categories)
+        return aggregating_from_dummies_on_grid(pgdf,osmgdf,categories = categories.keys())
+
 
 
 ##########################################
