@@ -41,5 +41,5 @@ data/Filosofi2015_carreaux_200m_reg04.gpkg
 #emacs extension
 
 .vscode/settings.json
-
+*.json
 *.pyc
