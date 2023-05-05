@@ -29,7 +29,7 @@ All requirements are contained in environment.yml for conda, or requirements.txt
 - [X] Datascrapping
   - [X] At Paris level
   - [X] At the *Petite Couronne* level
-  - Merging OSM data on INSEE's INSPIRE Squares.
+  - [X] Merging OSM data on INSEE's INSPIRE Squares.
 - [X] Analysis
   - [X] Restaurants accessibility, Gini inequality
   - [X] Descriptive data
