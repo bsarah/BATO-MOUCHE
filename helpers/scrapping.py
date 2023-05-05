@@ -12,6 +12,8 @@ from tqdm.auto import tqdm
 
 from pysal.lib import weights
 from pysal.lib import cg as geometry
+from pysal.model import spreg
+from spreg import OLS
 
 import plotly.express as px
 from palettable.colorbrewer.qualitative import Pastel1_7
@@ -625,6 +627,77 @@ def calculate_2SFCA_accessibility(gdf, interestsVar, weights_by_id,weight_age={
     f = lambda s: calculate_2SFCA_accessibility_var(supply=s,demand=demand,weights_by_id=weights_by_id)
     return gdf[interestsVar].apply(f,axis = 0)
 
+def aggregate_2SFCA(gdf, 
+                    categories  = ['restaurant','culture and art', 'education', 'food_shops', 'fashion_beauty','supply_shops'],
+                    weight = True):
+    
+    """
+    gdf : gpd.GeoDataFrame
+    categories : list
+    weight : boolean (whether you want to weight each service by its importance in every day life)
+    
+    Returns an aggregated accessibility index based on each service accessibility indexes
+    """
+    
+    #we weight each service by its importance : 
+    for i in categories :
+        gdf[str("weight_" + i)] = gdf[i].sum()/(gdf[categories].sum(axis = 1).sum())
+    
+    if weight : 
+        for i in categories : 
+            gdf[str(i + "_access" + "_norm*weight")] = (gdf[str(i + "_access")].apply(lambda x : (x - gdf[str(i + "_access")].min())/(gdf[str(i + "_access")].max() - gdf[str(i + "_access")].min())))*(1 - gdf[str("weight_" + i)])
+        gdf["CS_aggregated"] = gdf[[i + "_access_norm*weight" for i in categories]].sum(axis = 1) 
+        
+    else : 
+        for i in categories : 
+            gdf[str(i + "_access" + "without_norm*weight")] = gdf[str(i + "_access")].apply(lambda x : (x - gdf[str(i + "_access")].min())/(gdf[str(i + "_access")].max() - gdf[str(i + "_access")].min()))
+        gdf["CS_aggregated_without_weight"] = gdf[[i + "_accesswithout_norm*weight" for i in categories]].sum(axis = 1) 
+        
+    return gdf
+
+
+
+#########################
+###### Regression #######
+#########################
+
+
+def LM_test(df,dep_var, indep_var, w) : 
+    
+    """ Lagrange Multiplier tests to choose regression 
+    df : DataFrame
+    dep_var : str (the variable we are interested in)
+    indep_var : list of str (the explanatory variables)
+    w : type of weight 
+    """
+    ols = OLS(df[[dep_var]].values, df[indep_var].values)
+    lms = spreg.LMtests(ols, w)
+    print("LM error test p_value for " + str(dep_var) + " : " + str(round(lms.lme[1],4)))
+    print("LM lag test p_value for " + str(dep_var) + " : " + str(round(lms.lml[1],4)))
+    print("Robust LM error test p_value for " + str(dep_var) + " : " + str(round(lms.rlme[1],4)))
+    print("Robust LM lag test p_value for " + str(dep_var) + " : " + str(round(lms.rlml[1],4)))
+    print("LM SARMA test p_value for " + str(dep_var) + " : " + str(round(lms.sarma[1],4)))
+
+    
+def reg_spatial(gdf, dep_var, indep_var, weight): 
+    """df : DataFrame
+    dep_var : str (the variable we are interested in)
+    indep_var : list of str (the explanatory variables)
+    weight : type of weight 
+    
+    Runs a SARMA regression taking into account heteroskedasticity
+    """
+    
+    m2 = spreg.GM_Combo_Het(
+    # Dependent variable
+    gdf[[dep_var]].values,
+    gdf[indep_var].values,
+    w=weight,
+    name_y=dep_var,
+    name_x= indep_var,) #SARMA Model
+
+    return m2
+
 
     #########################
 ######## Charts #########
@@ -632,13 +705,15 @@ def calculate_2SFCA_accessibility(gdf, interestsVar, weights_by_id,weight_age={
 
 def composition_chart(place : str, 
                       var = 'category', 
-                      tags = {"amenity": ["restaurant","cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]}, 
-                      categories = ["restaurant", "culture and art", "education"],
+                      tags = {"amenity": amenities, "shop" : shops},
+                      categories = categories_tags.keys(),
                       city = "Paris, Ile-de-France, France"): 
     
-    pois = get_place_POI(place, tags, categories, city)[1]
-    dic = counting_unique_subvalues(pois, var, relative= False)
-    names = names = [x for x in list(dic.keys()) if dic[x] != 0]
+    pois = get_place_POI(place, tags, categories, city)
+    dic = {}
+    for i in categories : 
+        dic[i] = pois[i].sum()
+    names = [x for x in list(dic.keys()) if dic[x] != 0]
     size = [x for x in list(dic.values()) if x != 0]
     #Remove values equal to 0
 
@@ -658,22 +733,24 @@ def composition_chart(place : str,
 
 def compare_places(places : list, 
                    var = 'category', 
-                   tags = {"amenity": ["restaurant","cafe","bar","ice_cream","fast_food","pub","food_court","biergarten"]},
-                   categories = ["restaurant", "culture and art", "education"],
+                   tags = {"amenity": amenities, "shop" : shops},
+                   categories = categories_tags.keys(),
                    city = "Paris, Ile-de-France, France") : 
     
     list_places = []
     list_var = []
     list_number = []
     for i in tqdm(range(len(places))):
-        pois = get_place_POI(places[i], tags, categories, city)[1]
-        dic = counting_unique_subvalues(pois, var, relative= False)
+        pois = get_place_POI(places[i], tags, categories, city)
+        dic = {}
+        for j in categories : 
+            dic[j] = pois[j].sum()
         for x in dic : 
             list_places.append(places[i])
             list_var.append(x)
             list_number.append(dic[x])
     df = pd.DataFrame({'Place' : list_places, 'Var' : list_var, 'Number' : list_number})
     fig = px.bar(df, x="Place", y = "Number", color = "Var", width=800, height=500)
-    fig.update_layout(showlegend=False)
+    fig.update_layout(showlegend=True)
     
-    return 
+    return fig
